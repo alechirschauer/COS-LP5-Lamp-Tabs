@@ -85,6 +85,6 @@ def makelamptemplatefile(newfilename, oldfilename, templatefiles):
             olddata['intensity'][correctcolumnB] = np.round(data['net'][1] * exptime)
 
     # write the new file
-    old.writeto(newfilename, clobber=True)
+    old.writeto(newfilename, overwrite=True)
 
     old.close()

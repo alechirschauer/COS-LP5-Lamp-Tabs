@@ -86,7 +86,7 @@ def makelamptemplatefile(newfilename, oldfilename, templatefiles):
             olddata['intensity'][correctcolumnB] = np.round(data['net'][1] * exptime)
 
     # write the new file
-    old.writeto(newfilename, clobber=True)
+    old.writeto(newfilename, overwrite=True)
 
     old.close()
 
@@ -141,7 +141,7 @@ def prepare_correlation(cen, fp, segment, lamptab):
 
 #--------------------------------
 
-def find_fp_pix_shift(lamptab, outfile):
+def find_fp_pix_shift(lamptab, outfile, lp):
     ''' Finds the FP_PIXEL_SHIFT column for the lamptab by cross-correlating
     each FPPOS 1, 2, and 4 to FPPOS 3 for the given LAMPTAB
 
@@ -167,62 +167,120 @@ def find_fp_pix_shift(lamptab, outfile):
 
     for cenwave in cenwaves:
         print (cenwave)
-        if cenwave ==  1533 or cenwave == 800:
-            #continue # not updating the current modes
-            for fpoff in fps:
+        #if cenwave ==  1533 or cenwave == 800:
+        if lp == 3:
+            if cenwave == 800:
+                #continue # not updating the current modes
+                for fpoff in fps:
                 
-                if fpoff == 0:
-                    continue  # FPPOS 3 is the zero-point
-                for seg in segments:
-                    ref_flux, other_flux = prepare_correlation(cenwave, fpoff, seg, lamptab)
-                    #print (cenwave,fpoff,seg)
-                    if not len(ref_flux):
-                        if cenwave == 800 and seg == 'FUVB':
-                            #print('800 FUVB Shift: {}'.format(shift))
-                            print('800 FUVB no data to shift')
-                            # There is no 800 FUVB setting
-                            continue
+                    if fpoff == 0:
+                        continue  # FPPOS 3 is the zero-point
+                    for seg in segments:
+                        ref_flux, other_flux = prepare_correlation(cenwave, fpoff, seg, lamptab)
+                        #print (cenwave,fpoff,seg)
+                        if not len(ref_flux):
+                            if cenwave == 800 and seg == 'FUVB':
+                                #print('800 FUVB Shift: {}'.format(shift))
+                                print('800 FUVB no data to shift')
+                                # There is no 800 FUVB setting
+                                continue
+                            else:
+                                raise ValueError('No flux in {}/{}/{}'.format(cenwave, fpoff, seg))
+                        
+                            #if cenwave == 1280 and seg == 'FUVB':
+                            # We want the FP_PIXEL_SHIFT copied over from FUVA
+                            # pass through so the shift stays the same as FUVA
+                            #   print('1280 FUVB Shift: {}'.format(shift))
+                            #  pass
                         else:
-                            raise ValueError('No flux in {}/{}/{}'.format(cenwave, fpoff, seg))
+                            x_pixels = np.arange(len(ref_flux))
                         
-                        #if cenwave == 1280 and seg == 'FUVB':
-                        # We want the FP_PIXEL_SHIFT copied over from FUVA
-                        # pass through so the shift stays the same as FUVA
-                        #   print('1280 FUVB Shift: {}'.format(shift))
-                        #  pass
-                    else:
-                        x_pixels = np.arange(len(ref_flux))
+                            shift, cc = cross_correlate(ref_flux, other_flux, wave_a=x_pixels,
+                                                        wave_b=x_pixels, subsample=1)
+                            shift *= -1
+                            print('CORRELATING {} vs {} Shift: {}'.format(0, fpoff, shift))
                         
-                        shift, cc = cross_correlate(ref_flux, other_flux, wave_a=x_pixels,
-                                                    wave_b=x_pixels, subsample=1)
-                        shift *= -1
-                        print('CORRELATING {} vs {} Shift: {}'.format(0, fpoff, shift))
+                            correlation_data.append((0,
+                                                     fpoff,
+                                                     cenwave,
+                                                     seg,
+                                                     shift,
+                                                     cc ))
                         
-                        correlation_data.append((0,
-                                                 fpoff,
-                                                 cenwave,
-                                                 seg,
-                                                 shift,
-                                                 cc ))
+                            names = ('ref_fp',
+                                     'obs_fp',
+                                     'cenwave',
+                                     'segment',
+                                     'fp_shift',
+                                     'correlation_coeff')
                         
-                        names = ('ref_fp',
-                                 'obs_fp',
-                                 'cenwave',
-                                 'segment',
-                                 'fp_shift',
-                                 'correlation_coeff')
+                            if not len(correlation_data):
+                                print('no data for target', len(correlation_data))
+                                return Table(names=names)
                         
-                        if not len(correlation_data):
-                            print('no data for target', len(correlation_data))
-                            return Table(names=names)
-                        
-                        out_table = Table(rows=correlation_data, names=names)
-                        if len(out_table):
-                            correlation_table = vstack(out_table)
-                            correlation_table.write(outfile, format='ascii.csv')
-                            print('saved {}'.format(outfile))
-                            os.chmod(outfile, 0o777)
+                            out_table = Table(rows=correlation_data, names=names)
+                            if len(out_table):
+                                correlation_table = vstack(out_table)
+                                correlation_table.write(outfile, format='ascii.csv')
+                                print('saved {}'.format(outfile))
+                                os.chmod(outfile, 0o777)
 
+        elif lp == 5:
+            if cenwave == 1291 or cenwave == 1300 or cenwave == 1309 or cenwave == 1318 or cenwave == 1327:
+                #continue # not updating the current modes
+                for fpoff in fps:
+                
+                    if fpoff == 0:
+                        continue  # FPPOS 3 is the zero-point
+                    for seg in segments:
+                        ref_flux, other_flux = prepare_correlation(cenwave, fpoff, seg, lamptab)
+                        #print (cenwave,fpoff,seg)
+                        if not len(ref_flux):
+                            if cenwave == 800 and seg == 'FUVB':
+                                #print('800 FUVB Shift: {}'.format(shift))
+                                print('800 FUVB no data to shift')
+                                # There is no 800 FUVB setting
+                                continue
+                            else:
+                                raise ValueError('No flux in {}/{}/{}'.format(cenwave, fpoff, seg))
+                        
+                            #if cenwave == 1280 and seg == 'FUVB':
+                            # We want the FP_PIXEL_SHIFT copied over from FUVA
+                            # pass through so the shift stays the same as FUVA
+                            #   print('1280 FUVB Shift: {}'.format(shift))
+                            #  pass
+                        else:
+                            x_pixels = np.arange(len(ref_flux))
+                        
+                            shift, cc = cross_correlate(ref_flux, other_flux, wave_a=x_pixels,
+                                                        wave_b=x_pixels, subsample=1)
+                            shift *= -1
+                            print('CORRELATING {} vs {} Shift: {}'.format(0, fpoff, shift))
+                        
+                            correlation_data.append((0,
+                                                     fpoff,
+                                                     cenwave,
+                                                     seg,
+                                                     shift,
+                                                     cc ))
+                        
+                            names = ('ref_fp',
+                                     'obs_fp',
+                                     'cenwave',
+                                     'segment',
+                                     'fp_shift',
+                                     'correlation_coeff')
+                        
+                            if not len(correlation_data):
+                                print('no data for target', len(correlation_data))
+                                return Table(names=names)
+                        
+                            out_table = Table(rows=correlation_data, names=names)
+                            if len(out_table):
+                                correlation_table = vstack(out_table)
+                                correlation_table.write(outfile, format='ascii.csv')
+                                print('saved {}'.format(outfile))
+                                os.chmod(outfile, 0o777)
 
 #-------------------------------------------------------------------------------
 
@@ -274,7 +332,7 @@ def update_lamptab(new_shifts_file, updated_lamptab):
 
 
 # -------------------------------------------------------------------------------
-def update_zeropoint(lamp_new_name, lamp_old_name, new_disp_name, old_disp_name):
+def update_zeropoint(lamp_new_name, lamp_old_name, new_disp_name, old_disp_name, lp):
     ''' This function updates the DISPTAB by cross-correlating the
         LP1 lamp template to the new lamp template we observed at LP3
 
@@ -303,68 +361,132 @@ def update_zeropoint(lamp_new_name, lamp_old_name, new_disp_name, old_disp_name)
     print('Updating DISPTAB')
     # will need to add in 1222 and 1223 for LP4 to this list.
     for cenwave in cenwaves:
-        if (cenwave == 1533) or (cenwave == 800):
+        #if (cenwave == 1533) or (cenwave == 800):
+        if lp == 3:
+            if cenwave == 800:
+                for segment in segments:
 
-            for segment in segments:
+                    if (cenwave == 800) and segment == 'FUVB':
+                        # there is no FUVB for 1105
+                        break
 
-                if (cenwave == 800) and segment == 'FUVB':
-                    # there is no FUVB for 1105
-                    break
+                    fpoff = 0 # we only care about the difference for FPPOS 3, not averaging the shifts for all FPPOS
+                    x_pixels = np.arange(16384)
+                    with fits.open(lamp_new_name) as lamp_new:
+                        wh_lamp = np.where((lamp_new[1].data['CENWAVE'] == cenwave) &
+                                       (lamp_new[1].data['FPOFFSET'] == fpoff) &
+                                       (lamp_new[1].data['SEGMENT'] == segment))[0]
+                        if not len(wh_lamp):
+                            continue
+                        new_flux = lamp_new[1].data[wh_lamp][0]['INTENSITY']/ lamp_new[1].data[wh_lamp][0]['INTENSITY'].max()
+                        fp_shift_new = lamp_new[1].data[wh_lamp][0]['FP_PIXEL_SHIFT']
 
-                fpoff = 0 # we only care about the difference for FPPOS 3, not averaging the shifts for all FPPOS
-                x_pixels = np.arange(16384)
-                with fits.open(lamp_new_name) as lamp_new:
-                    wh_lamp = np.where((lamp_new[1].data['CENWAVE'] == cenwave) &
-                                   (lamp_new[1].data['FPOFFSET'] == fpoff) &
-                                   (lamp_new[1].data['SEGMENT'] == segment))[0]
-                    if not len(wh_lamp):
-                        continue
-                    new_flux = lamp_new[1].data[wh_lamp][0]['INTENSITY']/ lamp_new[1].data[wh_lamp][0]['INTENSITY'].max()
-                    fp_shift_new = lamp_new[1].data[wh_lamp][0]['FP_PIXEL_SHIFT']
-
-                with fits.open(lamp_old_name) as lamp_old:
-                    wh_lamp = np.where((lamp_old[1].data['CENWAVE'] == cenwave) &
-                                   (lamp_old[1].data['FPOFFSET'] == fpoff) &
-                                   (lamp_old[1].data['SEGMENT'] == segment))[0][0]
-                    old_flux = lamp_old[1].data[wh_lamp]['INTENSITY']/lamp_old[1].data[wh_lamp]['INTENSITY'].max()
-                    fp_shift_old = lamp_old[1].data[wh_lamp]['FP_PIXEL_SHIFT']
+                    with fits.open(lamp_old_name) as lamp_old:
+                        wh_lamp = np.where((lamp_old[1].data['CENWAVE'] == cenwave) &
+                                       (lamp_old[1].data['FPOFFSET'] == fpoff) &
+                                      (lamp_old[1].data['SEGMENT'] == segment))[0][0]
+                        old_flux = lamp_old[1].data[wh_lamp]['INTENSITY']/lamp_old[1].data[wh_lamp]['INTENSITY'].max()
+                        fp_shift_old = lamp_old[1].data[wh_lamp]['FP_PIXEL_SHIFT']
 
             
             
-                    shift, cc = cross_correlate(old_flux, new_flux, wave_a=x_pixels,
-                                            wave_b=x_pixels, subsample=1)
-                    shift *= -1  # Shift between new LAMPTAB and old LAMPTAB
+                        shift, cc = cross_correlate(old_flux, new_flux, wave_a=x_pixels,
+                                                wave_b=x_pixels, subsample=1)
+                        shift *= -1  # Shift between new LAMPTAB and old LAMPTAB
 
-                    # I think I want to do this to account for the difference in the
-                    #  FP_PIXEL_SHIFT correlation that's already been applied
-                    cc_shift = (shift-(fp_shift_new-fp_shift_old))
+                        # I think I want to do this to account for the difference in the
+                        #  FP_PIXEL_SHIFT correlation that's already been applied
+                        cc_shift = (shift-(fp_shift_new-fp_shift_old))
 
-                    if not cc_shift:
-                        'No Shift for {} {} {}'.format(cenwave, fpoff, segment)
-                        continue
-                    with fits.open(old_disp_name) as old_disp:
-                        wh_old_disp = np.where((old_disp[1].data['SEGMENT'] == segment) &
-                                               (old_disp[1].data['CENWAVE'] == cenwave) &
-                                               (old_disp[1].data['APERTURE'] == 'PSA'))[0][0]
-                        #coeffs_to_update = old_disp[1].data[wh_old_disp]['COEFF']
-                        d_to_update = old_disp[1].data[wh_old_disp]['D']
+                        if not cc_shift:
+                            'No Shift for {} {} {}'.format(cenwave, fpoff, segment)
+                            continue
+                        with fits.open(old_disp_name) as old_disp:
+                            wh_old_disp = np.where((old_disp[1].data['SEGMENT'] == segment) &
+                                                   (old_disp[1].data['CENWAVE'] == cenwave) &
+                                                   (old_disp[1].data['APERTURE'] == 'PSA'))[0][0]
+                            #coeffs_to_update = old_disp[1].data[wh_old_disp]['COEFF']
+                            d_to_update = old_disp[1].data[wh_old_disp]['D']
 
-                    with fits.open(new_disp_name, mode='update') as hdu:
-                        wh_disp = np.where((hdu[1].data['SEGMENT'] == segment) &
-                                    (hdu[1].data['CENWAVE'] == cenwave) &
-                                    (hdu[1].data['APERTURE'] == 'PSA'))[0][0]
+                        with fits.open(new_disp_name, mode='update') as hdu:
+                            wh_disp = np.where((hdu[1].data['SEGMENT'] == segment) &
+                                        (hdu[1].data['CENWAVE'] == cenwave) &
+                                        (hdu[1].data['APERTURE'] == 'PSA'))[0][0]
 
-                        ## Updating the zero-point in the COEFF value, not the D value.
-                        #hdu[1].data['COEFF'][wh_disp][0] = coeffs_to_update[0] - (cc_shift*coeffs_to_update[1])
-                        hdu[1].data['D'][wh_disp] = d_to_update + cc_shift
+                            ## Updating the zero-point in the COEFF value, not the D value.
+                            #hdu[1].data['COEFF'][wh_disp][0] = coeffs_to_update[0] - (cc_shift*coeffs_to_update[1])
+                            hdu[1].data['D'][wh_disp] = d_to_update + cc_shift
 
-                        #print('UPDATING {} {} value={}A difference={}pix {}A'.format(cenwave, segment,
-                        #                                                     coeffs_to_update[0] - (cc_shift*coeffs_to_update[1]),
-                        #                                                     cc_shift, cc_shift*coeffs_to_update[1]))
+                            #print('UPDATING {} {} value={}A difference={}pix {}A'.format(cenwave, segment,
+                            #                                                     coeffs_to_update[0] - (cc_shift*coeffs_to_update[1]),
+                            #                                                     cc_shift, cc_shift*coeffs_to_update[1]))
 
-                    with fits.open(new_disp_name) as disp:
-                        new_d = disp[1].data[wh_disp]['D']
-                        print('Updating {}/{}: {} to {} \n Difference of: {}'.format(cenwave, segment, d_to_update, new_d, cc_shift))
+                        with fits.open(new_disp_name) as disp:
+                            new_d = disp[1].data[wh_disp]['D']
+                            print('Updating {}/{}: {} to {} \n Difference of: {}'.format(cenwave, segment, d_to_update, new_d, cc_shift))
+
+        elif lp == 5:
+            if cenwave == 1291 or cenwave == 1300 or cenwave == 1309 or cenwave == 1318 or cenwave == 1327:    
+                for segment in segments:
+
+                    if (cenwave == 800) and segment == 'FUVB':
+                        # there is no FUVB for 1105
+                        break
+
+                    fpoff = 0 # we only care about the difference for FPPOS 3, not averaging the shifts for all FPPOS
+                    x_pixels = np.arange(16384)
+                    with fits.open(lamp_new_name) as lamp_new:
+                        wh_lamp = np.where((lamp_new[1].data['CENWAVE'] == cenwave) &
+                                       (lamp_new[1].data['FPOFFSET'] == fpoff) &
+                                       (lamp_new[1].data['SEGMENT'] == segment))[0]
+                        if not len(wh_lamp):
+                            continue
+                        new_flux = lamp_new[1].data[wh_lamp][0]['INTENSITY']/ lamp_new[1].data[wh_lamp][0]['INTENSITY'].max()
+                        fp_shift_new = lamp_new[1].data[wh_lamp][0]['FP_PIXEL_SHIFT']
+
+                    with fits.open(lamp_old_name) as lamp_old:
+                        wh_lamp = np.where((lamp_old[1].data['CENWAVE'] == cenwave) &
+                                       (lamp_old[1].data['FPOFFSET'] == fpoff) &
+                                      (lamp_old[1].data['SEGMENT'] == segment))[0][0]
+                        old_flux = lamp_old[1].data[wh_lamp]['INTENSITY']/lamp_old[1].data[wh_lamp]['INTENSITY'].max()
+                        fp_shift_old = lamp_old[1].data[wh_lamp]['FP_PIXEL_SHIFT']
+
+            
+            
+                        shift, cc = cross_correlate(old_flux, new_flux, wave_a=x_pixels,
+                                                wave_b=x_pixels, subsample=1)
+                        shift *= -1  # Shift between new LAMPTAB and old LAMPTAB
+
+                        # I think I want to do this to account for the difference in the
+                        #  FP_PIXEL_SHIFT correlation that's already been applied
+                        cc_shift = (shift-(fp_shift_new-fp_shift_old))
+
+                        if not cc_shift:
+                            'No Shift for {} {} {}'.format(cenwave, fpoff, segment)
+                            continue
+                        with fits.open(old_disp_name) as old_disp:
+                            wh_old_disp = np.where((old_disp[1].data['SEGMENT'] == segment) &
+                                                   (old_disp[1].data['CENWAVE'] == cenwave) &
+                                                   (old_disp[1].data['APERTURE'] == 'PSA'))[0][0]
+                            #coeffs_to_update = old_disp[1].data[wh_old_disp]['COEFF']
+                            d_to_update = old_disp[1].data[wh_old_disp]['D']
+
+                        with fits.open(new_disp_name, mode='update') as hdu:
+                            wh_disp = np.where((hdu[1].data['SEGMENT'] == segment) &
+                                        (hdu[1].data['CENWAVE'] == cenwave) &
+                                        (hdu[1].data['APERTURE'] == 'PSA'))[0][0]
+
+                            ## Updating the zero-point in the COEFF value, not the D value.
+                            #hdu[1].data['COEFF'][wh_disp][0] = coeffs_to_update[0] - (cc_shift*coeffs_to_update[1])
+                            hdu[1].data['D'][wh_disp] = d_to_update + cc_shift
+
+                            #print('UPDATING {} {} value={}A difference={}pix {}A'.format(cenwave, segment,
+                            #                                                     coeffs_to_update[0] - (cc_shift*coeffs_to_update[1]),
+                            #                                                     cc_shift, cc_shift*coeffs_to_update[1]))
+
+                        with fits.open(new_disp_name) as disp:
+                            new_d = disp[1].data[wh_disp]['D']
+                            print('Updating {}/{}: {} to {} \n Difference of: {}'.format(cenwave, segment, d_to_update, new_d, cc_shift))
 
 # -------------------------------------------------------------------------------
 if __name__ == '__main__':
