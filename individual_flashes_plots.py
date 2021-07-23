@@ -22,9 +22,9 @@ def make_figures(lamp_list):
 
     for lamp in lamp_list:
 
-        outdir = '/Users/ahirschauer/Documents/Year4/04-2021/Lamp_Tabs/ahirscha58916/output_15July2021/G140L/individual_flashes/'
-        initial_dir = '/Users/ahirschauer/Documents/Year4/04-2021/Lamp_Tabs/ahirscha58916/output_15July2021/G140L/'
-        new_dir = '/Users/ahirschauer/Documents/Year4/04-2021/Lamp_Tabs/ahirscha58916/output_15July2021/G140L/CalCOS_out_22July2021/'
+        outdir = '/Users/ahirschauer/Documents/Year4/07-2021/LAMPTABs/Individual_Flashes_Plots/output/'
+        initial_dir = '/Users/ahirschauer/Documents/Year4/07-2021/LAMPTABs/Individual_Flashes_Plots/pre-shift/'
+        new_dir = '/Users/ahirschauer/Documents/Year4/07-2021/LAMPTABs/Individual_Flashes_Plots/post-shift/'
 
         lamp_init = os.path.join(initial_dir, lamp)
         lamp_fin = os.path.join(new_dir, lamp)
@@ -45,8 +45,6 @@ def make_figures(lamp_list):
                     marker = '.'
 
                 with fits.open(lamp_file) as lf: # reading in the lamptab file
-                    #lamptab = os.path.join("/grp/hst/cos2/newcenwaves/lamptab_files/", lf[0].header['LAMPTAB'].split('$')[-1])
-                    #lamptab = os.path.join("/Users/ahirschauer/Documents/Year4/04-2021/Lamp_Tabs/ahirscha58916/", lf[0].header['LAMPTAB'].split('$')[-1])
                     lamptab = os.path.join("/grp/hst/cos2/LP5_ERA/files_to_use/LP3_G140L_fuv_15July2021_lamp.fits"), lf[0].header['LAMPTAB'].split('$')[-1]
 
                     print ('-----------------')
@@ -115,14 +113,9 @@ def make_figures(lamp_list):
 
 if __name__ == "__main__":
 
-    #outdir = "/user/rplesha/lp4_lamps/11_24_2017/individual_flashes/"
-    #outdir = "/Users/bjames/COS/calibration/G160M_1533/lamptab/analysis/testing/"
-    outdir = '/Users/ahirschauer/Documents/Year4/04-2021/Lamp_Tabs/ahirscha58916/output_15July2021/G140L/individual_flashes/'
-
-    #initial_dir = "/grp/hst/cos2/c1533/data/15459/corrdir/old_wavecorr_on/"
-    initial_dir = '/Users/ahirschauer/Documents/Year4/04-2021/Lamp_Tabs/ahirscha58916/output_15July2021/G140L/'
-    #new_dir = "/grp/hst/cos2/c1533/data/15459/corrdir/wavecorr_on/"
-    new_dir = '/Users/ahirschauer/Documents/Year4/04-2021/Lamp_Tabs/ahirscha58916/output_15July2021/G140L/CalCOS_out_22July2021/'
+    outdir = '/Users/ahirschauer/Documents/Year4/07-2021/LAMPTABs/Individual_Flashes_Plots/output/'
+    initial_dir = '/Users/ahirschauer/Documents/Year4/07-2021/LAMPTABs/Individual_Flashes_Plots/pre-shift/'
+    new_dir = '/Users/ahirschauer/Documents/Year4/07-2021/LAMPTABs/Individual_Flashes_Plots/post-shift/'
 
     # grabbing the basenames of every lampflash in the newly calibrated directory
     lamp_bases = [os.path.basename(f) for f in glob.glob(os.path.join(new_dir, '*lampflash*'))]
